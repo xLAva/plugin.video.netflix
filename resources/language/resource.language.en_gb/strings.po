@@ -963,3 +963,7 @@ msgstr ""
 msgctxt "#30234"
 msgid "Keep watched status marks separate for each profile (this option will be removed in future versions)"
 msgstr ""
+
+msgctxt "#30299"
+msgid "Enable AV1 profiles"
+msgstr ""
