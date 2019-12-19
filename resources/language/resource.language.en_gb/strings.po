@@ -959,3 +959,7 @@ msgstr ""
 msgctxt "#30233"
 msgid "Content for {} will require the PIN to start playback."
 msgstr ""
+
+msgctxt "#30500"
+msgid "Enable sending/receiving progress and watched state of the videos from Netflix"
+msgstr ""
