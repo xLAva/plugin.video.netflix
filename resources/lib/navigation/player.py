@@ -65,20 +65,31 @@ def play(videoid):
     list_item = get_inputstream_listitem(videoid)
     infos, art = infolabels.add_info_for_playback(videoid, list_item)
 
-    # Workaround for resuming strm files from library
-    resume_position = infos.get('resume', {}).get('position') \
-        if xbmc.getInfoLabel('Container.PluginName') != g.ADDON.getAddonInfo('id') \
-        and g.ADDON.getSettingBool('ResumeManager_enabled') else None
-    if resume_position:
-        index_selected = ui.ask_for_resume(resume_position) if g.ADDON.getSettingBool('ResumeManager_dialog') else None
-        if index_selected == -1:
-            xbmcplugin.setResolvedUrl(
-                handle=g.PLUGIN_HANDLE,
-                succeeded=False,
-                listitem=list_item)
-            return
-        if index_selected == 1:
-            resume_position = None
+    resume_position = {}
+    event_data = {}
+    if g.ADDON.getSettingBool('ProgressManager_enabled'):
+        event_data = _get_event_data(videoid)
+        if event_data['resume_position']:
+            common.debug('Resume from last saved Netflix position: {}',
+                         event_data['resume_position'])
+            list_item.setProperty('ResumeTime', str(event_data['resume_position']))
+            list_item.setProperty('TotalTime', str(event_data['runtime']))
+    else:
+        # Workaround for resuming strm files from library
+        resume_position = infos.get('resume', {}).get('position') \
+            if xbmc.getInfoLabel('Container.PluginName') != g.ADDON.getAddonInfo('id') \
+               and g.ADDON.getSettingBool('ResumeManager_enabled') else None
+        if resume_position:
+            index_selected = ui.ask_for_resume(resume_position) if g.ADDON.getSettingBool(
+                'ResumeManager_dialog') else None
+            if index_selected == -1:
+                xbmcplugin.setResolvedUrl(
+                    handle=g.PLUGIN_HANDLE,
+                    succeeded=False,
+                    listitem=list_item)
+                return
+            if index_selected == 1:
+                resume_position = None
 
     common.debug('Sending initialization signal')
     common.send_signal(common.Signals.PLAYBACK_INITIATED, {
@@ -87,7 +98,8 @@ def play(videoid):
         'art': art,
         'timeline_markers': get_timeline_markers(metadata[0]),
         'upnext_info': get_upnext_info(videoid, (infos, art), metadata),
-        'resume_position': resume_position})
+        'resume_position': resume_position,
+        'event_data': event_data})
     xbmcplugin.setResolvedUrl(
         handle=g.PLUGIN_HANDLE,
         succeeded=True,
@@ -173,6 +185,27 @@ def get_upnext_info(videoid, current_episode, metadata):
         next_info['notification_time'] = (metadata[0]['runtime'] -
                                           metadata[0]['creditsOffset'])
     return next_info
+
+
+def _get_event_data(videoid):
+    """Get data needed to send event requests to Netflix and for resume from last position"""
+    api_data = api.single_info(videoid)
+    if not api_data:
+        return {}
+    # Todo: request via api only data needed
+    videoid_data = api_data['videos'][videoid.value]
+    common.debug('Event data: {}', videoid_data)
+
+    event_data = {'resume_position': videoid_data['bookmarkPosition']
+                  if videoid_data['bookmarkPosition'] > -1 else None,
+                  'runtime': videoid_data['runtime'],
+                  'request_id': videoid_data['requestId'],
+                  'watched': videoid_data['watched']}
+    if videoid.mediatype == common.VideoId.EPISODE:
+        event_data['track_id'] = videoid_data['trackIds']['trackId_jawEpisode']
+    else:
+        event_data['track_id'] = videoid_data['trackIds']['trackId_jaw']
+    return event_data
 
 
 @common.time_execution(immediate=False)

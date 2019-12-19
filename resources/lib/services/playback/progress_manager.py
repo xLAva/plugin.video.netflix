@@ -48,6 +48,7 @@ class ProgressManager(PlaybackActionManager):
             # Before start we have to wait a possible values changed by stream_continuity
             if self.tick_elapsed == 2:
                 # Is needed to wait at least 2 seconds
+                # Todo: send event
                 self.wait_for_first_start_event = False
         else:
             # Generate events to send to Netflix service every 2 minutes
