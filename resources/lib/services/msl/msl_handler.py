@@ -18,6 +18,7 @@ import resources.lib.cache as cache
 import resources.lib.common as common
 from resources.lib.globals import g
 from resources.lib.services.msl.converter import convert_to_dash
+from resources.lib.services.msl.events_handler import EventsHandler
 from resources.lib.services.msl.msl_handler_base import (MSLHandlerBase, display_error_info,
                                                          ENDPOINTS)
 from resources.lib.services.msl.profiles import enabled_profiles
@@ -51,6 +52,8 @@ class MSLHandler(MSLHandlerBase):
         common.register_slot(
             signal=common.Signals.ESN_CHANGED,
             callback=self.perform_key_handshake)
+        events_handler = EventsHandler(self.chunked_request)
+        events_handler.start()
 
     @display_error_info
     @common.time_execution(immediate=True)
