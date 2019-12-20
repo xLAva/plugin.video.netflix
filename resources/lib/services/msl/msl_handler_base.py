@@ -62,24 +62,7 @@ class MSLHandlerBase(object):
     session = requests.session()
 
     def __init__(self):
-        # pylint: disable=broad-except
         self.request_builder = None
-        try:
-            msl_data = json.loads(common.load_file('msl_data.json'))
-            common.info('Loaded MSL data from disk')
-        except Exception:
-            msl_data = None
-        try:
-            self.request_builder = MSLRequestBuilder(msl_data)
-            # Addon just installed, the service starts but there is no esn
-            if g.get_esn():
-                self.check_mastertoken_validity()
-        except Exception:
-            import traceback
-            common.error(traceback.format_exc())
-        common.register_slot(
-            signal=common.Signals.ESN_CHANGED,
-            callback=self.perform_key_handshake)
 
     def check_mastertoken_validity(self):
         """Return the mastertoken validity and executes a new key handshake when necessary"""

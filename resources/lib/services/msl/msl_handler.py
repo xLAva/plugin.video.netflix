@@ -21,6 +21,7 @@ from resources.lib.services.msl.converter import convert_to_dash
 from resources.lib.services.msl.msl_handler_base import (MSLHandlerBase, display_error_info,
                                                          ENDPOINTS)
 from resources.lib.services.msl.profiles import enabled_profiles
+from resources.lib.services.msl.request_builder import MSLRequestBuilder
 
 try:  # Python 2
     unicode
@@ -30,6 +31,26 @@ except NameError:  # Python 3
 
 class MSLHandler(MSLHandlerBase):
     """Handles session management and crypto for license, manifest and event requests"""
+
+    def __init__(self):
+        super(MSLHandler, self).__init__()
+        # pylint: disable=broad-except
+        try:
+            msl_data = json.loads(common.load_file('msl_data.json'))
+            common.info('Loaded MSL data from disk')
+        except Exception:
+            msl_data = None
+        try:
+            self.request_builder = MSLRequestBuilder(msl_data)
+            # Addon just installed, the service starts but there is no esn
+            if g.get_esn():
+                self.check_mastertoken_validity()
+        except Exception:
+            import traceback
+            common.error(traceback.format_exc())
+        common.register_slot(
+            signal=common.Signals.ESN_CHANGED,
+            callback=self.perform_key_handshake)
 
     @display_error_info
     @common.time_execution(immediate=True)
