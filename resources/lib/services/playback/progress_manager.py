@@ -12,6 +12,7 @@ from __future__ import absolute_import, division, unicode_literals
 import resources.lib.common as common
 
 from .action_manager import PlaybackActionManager
+from resources.lib.services.msl.events_handler import (EVENT_START, EVENT_STOP, EVENT_KEEP_ALIVE)
 
 
 class ProgressManager(PlaybackActionManager):
@@ -25,6 +26,7 @@ class ProgressManager(PlaybackActionManager):
         self.tick_elapsed = 0
         self.last_player_state = {}
         self.is_video_started = False
+        self.event_data = {}
 
     def _initialize(self, data):
         videoid = common.VideoId.from_dict(data['videoid'])
@@ -34,6 +36,7 @@ class ProgressManager(PlaybackActionManager):
         self.current_videoid = videoid \
             if videoid.mediatype == common.VideoId.MOVIE \
             else videoid.derive_parent(0)
+        self.event_data = data['event_data']
 
     def _on_playback_started(self, player_state):
         self.tick_elapsed = 0
@@ -48,19 +51,22 @@ class ProgressManager(PlaybackActionManager):
             # Before start we have to wait a possible values changed by stream_continuity
             if self.tick_elapsed == 2:
                 # Is needed to wait at least 2 seconds
-                # Todo: send event
+                self._send_event(EVENT_START, player_state)
                 self.wait_for_first_start_event = False
         else:
-            # Generate events to send to Netflix service every 2 minutes
-            # Todo: restore right minutes
-            if (self.tick_elapsed - self.last_tick_count) / 60 >= 2:
+            # Generate events to send to Netflix service every n seconds (min 1 sec)
+            if (self.tick_elapsed - self.last_tick_count) >= 2:
                 # Todo: identify a possible fast forward / rewind
-                #       send event
+                self._send_event(EVENT_KEEP_ALIVE, player_state)
                 self.last_tick_count = self.tick_elapsed
         self.last_player_state = player_state
         self.tick_elapsed += 1  # One tick is one second
 
     def _on_playback_stopped(self):
         # Generate events to send to Netflix service
+        self._send_event(EVENT_STOP, self.last_player_state)
+        pass
+
+    def _send_event(self, event_type, player_state):
         # Todo: send event
         pass

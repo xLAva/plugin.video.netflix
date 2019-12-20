@@ -54,6 +54,8 @@ def play(videoid):
     metadata = api.metadata(videoid)
     common.debug('Metadata is {}', metadata)
 
+    is_played_by_library = xbmc.getInfoLabel('Container.PluginName') != g.ADDON.getAddonInfo('id')
+
     # Parental control PIN
     pin_result = _verify_pin(metadata[0].get('requiresPin', False))
     if not pin_result:
@@ -69,16 +71,17 @@ def play(videoid):
     event_data = {}
     if g.ADDON.getSettingBool('ProgressManager_enabled'):
         event_data = _get_event_data(videoid)
+        event_data['videoid'] = videoid.to_dict()
+        event_data['is_played_by_library'] = is_played_by_library
         if event_data['resume_position']:
             common.debug('Resume from last saved Netflix position: {}',
                          event_data['resume_position'])
             list_item.setProperty('ResumeTime', str(event_data['resume_position']))
             list_item.setProperty('TotalTime', str(event_data['runtime']))
-    else:
+    elif is_played_by_library:
         # Workaround for resuming strm files from library
         resume_position = infos.get('resume', {}).get('position') \
-            if xbmc.getInfoLabel('Container.PluginName') != g.ADDON.getAddonInfo('id') \
-               and g.ADDON.getSettingBool('ResumeManager_enabled') else None
+            if g.ADDON.getSettingBool('ResumeManager_enabled') else None
         if resume_position:
             index_selected = ui.ask_for_resume(resume_position) if g.ADDON.getSettingBool(
                 'ResumeManager_dialog') else None
@@ -200,7 +203,8 @@ def _get_event_data(videoid):
                   if videoid_data['bookmarkPosition'] > -1 else None,
                   'runtime': videoid_data['runtime'],
                   'request_id': videoid_data['requestId'],
-                  'watched': videoid_data['watched']}
+                  'watched': videoid_data['watched'],
+                  'is_in_mylist': videoid_data['queue'].get('inQueue', False)}
     if videoid.mediatype == common.VideoId.EPISODE:
         event_data['track_id'] = videoid_data['trackIds']['trackId_jawEpisode']
     else:
