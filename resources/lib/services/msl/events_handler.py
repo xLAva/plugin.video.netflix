@@ -16,8 +16,11 @@ import time
 
 import xbmc
 
+import resources.lib.cache as cache
 from resources.lib import common
+from resources.lib.globals import g
 from resources.lib.services.msl import event_tag_builder
+from resources.lib.services.msl.msl_handler_base import build_request_data
 
 try:
     import Queue as queue
@@ -34,10 +37,11 @@ EVENT_BIND = 'bind'        # events/bind : ?
 class Event(object):
     """Object representing an event request to be processed"""
 
-    def __init__(self, data_params):
-        common.debug('Event type {} added to queue: {}', data_params['event'], data_params)
+    def __init__(self, event_data):
+        self.event_type = event_data['params']['event']
+        common.debug('Event type {} added to queue: {}', self.event_type, event_data)
         self.status = 'IN_QUEUE'
-        self.request_data = data_params
+        self.request_data = event_data
         self.response_data = None
         self.req_attempt = 0
 
@@ -46,7 +50,7 @@ class Event(object):
 
     def set_response(self, response):
         self.response_data = response
-        common.debug('Event type {} response: {}', self.request_data['event'], response)
+        common.debug('Event type {} response: {}', self.event_type, response)
         # Todo check for possible error in response and set right status
         self.status = 'RESPONSE_ERROR'
         self.status = 'RESPONSE_SUCCESS'
@@ -60,7 +64,7 @@ class Event(object):
         return True if self.req_attempt <= 3 else False
 
     def __str__(self):
-        return self.request_data['event']
+        return self.event_type
 
 
 class EventsHandler(threading.Thread):
@@ -120,14 +124,20 @@ class EventsHandler(threading.Thread):
         """Adds an event in the queue of events to be processed"""
         videoid = common.VideoId.from_dict(event_data['videoid'])
         previous_data = self.cache_data_events.get(videoid.value, {})
+        manifest = get_manifest(videoid)
+        url = manifest['links']['events']['href']
+
         if previous_data.get('xid') in self.banned_events_ids:
             common.warn('Event "{}" not added, is banned for a previous request event error',
                         event_type)
             return
+
+        event_data = build_request_data(url, self._build_event_params(event_type,
+                                                                      event_data,
+                                                                      player_state,
+                                                                      manifest))
         try:
-            self.queue_events.put_nowait(Event(self._build_event_params(event_type,
-                                                                        event_data,
-                                                                        player_state)))
+            self.queue_events.put_nowait(Event(event_data))
         except queue.Full:
             common.warn('Events queue is full, event "{}" not queued', event_type)
 
@@ -138,7 +148,7 @@ class EventsHandler(threading.Thread):
         self.cache_data_events = {}
         self.banned_events_ids = []
 
-    def _build_event_params(self, event_type, event_data, player_state):
+    def _build_event_params(self, event_type, event_data, player_state, manifest):
         """Build data params for an event request"""
         videoid = common.VideoId.from_dict(event_data['videoid'])
         # Get previous elaborated data of the same video id
@@ -156,11 +166,11 @@ class EventsHandler(threading.Thread):
             'position': player_state['elapsed_seconds'] * 1000,  # Video time elapsed
             'clientTime': timestamp,
             'sessionStartTime': previous_data.get('sessionStartTime', timestamp),
-            'mediaId': event_tag_builder.get_media_id(videoid, player_state),
+            'mediaId': event_tag_builder.get_media_id(videoid, player_state, manifest),
             'trackId': event_data['track_id'],
             'sessionId': self.session_id,
             'appId': self.app_id or self.session_id,
-            'playTimes': event_tag_builder.get_play_times(videoid, player_state),
+            'playTimes': event_tag_builder.get_play_times(videoid, player_state, manifest),
             'sessionParams': previous_data.get('sessionParams', {
                 'isUIAutoPlay': False,  # Should be set equal to the one in the manifest
                 'supportsPreReleasePin': True,  # Should be set equal to the one in the manifest
@@ -186,3 +196,9 @@ class EventsHandler(threading.Thread):
 
         self.cache_data_events[videoid.value] = params
         return params
+
+
+def get_manifest(videoid):
+    """Get the manifest from cache"""
+    cache_identifier = g.get_esn() + '_' + videoid.value
+    return g.CACHE.get(cache.CACHE_MANIFESTS, cache_identifier, False)

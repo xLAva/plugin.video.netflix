@@ -10,16 +10,14 @@
 from __future__ import absolute_import, division, unicode_literals
 
 
-def get_media_id(videoid, player_state):  # Todo be cached to avoid cpu load on sequential events
+def get_media_id(videoid, player_state, manifest):
     """Try to build the mediaId by parsing manifest with the current player streams used"""
-    # Todo: get manifest from cache (esn + videoid)
     # Build using 'new_track_id' tags
     return "A:1:1;2;en;1;|V:2:1;2;;default;1;CE3;0;|T:1:1;1;NONE;0;1;"
 
 
-def get_play_times(videoid, player_state):  # Todo be cached to avoid cpu load on sequential events
+def get_play_times(videoid, player_state, manifest):
     """Build the playTimes dict by parsing manifest with the current player streams used"""
-    # Todo: get manifest from cache (esn + videoid)
     duration = player_state['elapsed_seconds'] * 1000
 
     # Todo: elaborate from manifest

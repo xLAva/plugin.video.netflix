@@ -147,20 +147,21 @@ class MSLHandlerBase(object):
                                                  self.request_builder.crypto)
             return _raise_if_error(decrypted_response)
 
-    def build_request_data(self, url, params=None, echo=''):
-        """Create a standard request data"""
-        if not params:
-            raise Exception('Cannot build the message without parameters')
-        timestamp = int(time.time() * 10000)
-        request_data = {
-            'version': 2,
-            'url': url,
-            'id': timestamp,
-            'languages': [g.LOCAL_DB.get_value('locale_id')],
-            'params': params,
-            'echo': echo
-        }
-        return request_data
+
+def build_request_data(url, params=None, echo=''):
+    """Create a standard request data"""
+    if not params:
+        raise Exception('Cannot build the message without parameters')
+    timestamp = int(time.time() * 10000)
+    request_data = {
+        'version': 2,
+        'url': url,
+        'id': timestamp,
+        'languages': [g.LOCAL_DB.get_value('locale_id')],
+        'params': params,
+        'echo': echo
+    }
+    return request_data
 
 
 @common.time_execution(immediate=True)

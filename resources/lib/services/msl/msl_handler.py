@@ -20,7 +20,7 @@ from resources.lib.globals import g
 from resources.lib.services.msl.converter import convert_to_dash
 from resources.lib.services.msl.events_handler import EventsHandler
 from resources.lib.services.msl.msl_handler_base import (MSLHandlerBase, display_error_info,
-                                                         ENDPOINTS)
+                                                         ENDPOINTS, build_request_data)
 from resources.lib.services.msl.profiles import enabled_profiles
 from resources.lib.services.msl.request_builder import MSLRequestBuilder
 
@@ -159,7 +159,7 @@ class MSLHandler(MSLHandlerBase):
         mt_validity = self.check_mastertoken_validity()
 
         manifest = self.chunked_request(ENDPOINTS['manifest'],
-                                        self.build_request_data('/manifest', params),
+                                        build_request_data('/manifest', params),
                                         esn,
                                         mt_validity)
         # Save the manifest to disk as reference
@@ -193,7 +193,7 @@ class MSLHandler(MSLHandlerBase):
         url = self.last_license_url
 
         response = self.chunked_request(ENDPOINTS['license'],
-                                        self.build_request_data(url, params, 'sessionId'),
+                                        build_request_data(url, params, 'sessionId'),
                                         g.get_esn())
         return response[0]['licenseResponseBase64']
 

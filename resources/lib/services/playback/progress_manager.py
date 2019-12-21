@@ -12,7 +12,8 @@ from __future__ import absolute_import, division, unicode_literals
 import resources.lib.common as common
 
 from .action_manager import PlaybackActionManager
-from resources.lib.services.msl.events_handler import (EVENT_START, EVENT_STOP, EVENT_KEEP_ALIVE)
+from resources.lib.services.msl.events_handler import (EVENT_START, EVENT_STOP, EVENT_KEEP_ALIVE,
+                                                       EVENT_ENGAGE)
 
 
 class ProgressManager(PlaybackActionManager):
@@ -22,10 +23,9 @@ class ProgressManager(PlaybackActionManager):
         super(ProgressManager, self).__init__()
         self.current_videoid = None
         self.tick_elapsed = 0
-        self.last_tick_count = 0
+        self.last_video_elapsed_seconds = 0
         self.last_player_state = {}
-        self.is_video_started = False
-        self.is_delay_start_performed = False
+        self.ignore_ticks = True
         self.event_data = {}
 
     def _initialize(self, data):
@@ -41,29 +41,43 @@ class ProgressManager(PlaybackActionManager):
     def _on_playback_started(self, player_state):
         # Todo: safe clear queue events
         self.tick_elapsed = 0
+        self.last_video_elapsed_seconds = 0
         self.start_event_requested = False
-        self.is_delay_start_performed = False
-        self.is_video_started = True
+        self.ignore_ticks = False
 
     def _on_tick(self, player_state):
-        if not self.is_video_started:
+        if self.ignore_ticks:
             return
         if not self.start_event_requested and self.tick_elapsed == 2:
             # Before request 'start' event we have to wait a possible values changed
             # by stream_continuity, so is needed to wait at least 2 seconds
             self._send_event(EVENT_START, player_state)
             self.start_event_requested = True
-        elif not self.is_delay_start_performed and self.tick_elapsed == 7:
-            # Wait at least 5 second before send other event request after 'start' event
-            self.is_delay_start_performed = True
-        elif self.is_delay_start_performed and (self.tick_elapsed - self.last_tick_count) >= 2:
-            # Send event requests to Netflix service every n seconds (min 1 sec)
-            if (self.tick_elapsed - self.last_tick_count) >= 2:
-                # Todo: identify a possible fast forward / rewind
+            # Wait at least 1 minute before send keep alive events request after 'start' event
+            self.tick_elapsed = 0
+        elif self.tick_elapsed >= 60:
+            # Send event requests to Netflix service every minute
+            if (self.last_video_elapsed_seconds - player_state['elapsed_seconds']) >= 10 or \
+               (self.last_video_elapsed_seconds - player_state['elapsed_seconds']) <= 10:
+                # Possible fast forward / rewind, so do nothing
+                pass
+            else:
                 self._send_event(EVENT_KEEP_ALIVE, player_state)
-                self.last_tick_count = self.tick_elapsed
+            self.tick_elapsed = 0
         self.last_player_state = player_state
         self.tick_elapsed += 1  # One tick is one second
+        self.last_video_elapsed_seconds = player_state['elapsed_seconds']
+
+    def _on_playback_pause(self, player_state):
+        self._send_event(EVENT_ENGAGE, player_state)
+
+    def _on_playback_seek(self, player_state):
+        self.ignore_ticks = True
+        self._send_event(EVENT_ENGAGE, player_state)
+        self._send_event(EVENT_STOP, player_state)
+        self.start_event_requested = False
+        self.tick_elapsed = 0
+        self.ignore_ticks = False
 
     def _on_playback_stopped(self):
         self._send_event(EVENT_STOP, self.last_player_state)
