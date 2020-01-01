@@ -283,7 +283,7 @@ def build_video_listing(video_list, menu_data, pathitems=None, genre_id=None):
                                 True))
     add_items_previous_next_page(directory_items, pathitems,
                                  video_list.perpetual_range_selector, genre_id)
-    sort_type = 'sort_nothing'
+    sort_type = 'sort_default'
     if menu_data['path'][1] == 'myList' and \
        int(g.ADDON.getSettingInt('menu_sortorder_mylist')) == 0:
         # At the moment it is not possible to make a query with results sorted for the 'mylist',
@@ -466,7 +466,8 @@ def finalize_directory(items, content_type=g.CONTENT_FOLDER, sort_type='sort_not
 
 def add_sort_methods(sort_type):
     if sort_type == 'sort_nothing':
-        #xbmcplugin.addSortMethod(g.PLUGIN_HANDLE, xbmcplugin.SORT_METHOD_NONE)
+        xbmcplugin.addSortMethod(g.PLUGIN_HANDLE, xbmcplugin.SORT_METHOD_NONE)
+    if sort_type == 'sort_default':
         xbmcplugin.addSortMethod(g.PLUGIN_HANDLE, xbmcplugin.SORT_METHOD_TITLE)
         xbmcplugin.addSortMethod(g.PLUGIN_HANDLE, xbmcplugin.SORT_METHOD_DATEADDED)
     if sort_type == 'sort_label':
