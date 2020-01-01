@@ -9,6 +9,7 @@
 """
 from __future__ import absolute_import, division, unicode_literals
 from future.utils import iteritems
+from datetime import datetime
 
 import resources.lib.common as common
 
@@ -39,7 +40,7 @@ ART_PARTIAL_PATHS = [
 ]
 
 VIDEO_LIST_PARTIAL_PATHS = [
-    [['summary', 'title', 'synopsis', 'regularSynopsis', 'evidence', 'queue',
+    [['availability', 'summary', 'title', 'synopsis', 'regularSynopsis', 'evidence', 'queue',
       'episodeCount', 'info', 'maturity', 'runtime', 'seasonCount',
       'releaseYear', 'userRating', 'numSeasonsLabel', 'bookmarkPosition',
       'dpSupplementalMessage', 'watched', 'delivery']],
@@ -64,7 +65,7 @@ SEASONS_PARTIAL_PATHS = [
 ] + ART_PARTIAL_PATHS
 
 EPISODES_PARTIAL_PATHS = [
-    [['summary', 'synopsis', 'title', 'runtime', 'releaseYear', 'queue',
+    [['availability', 'summary', 'synopsis', 'title', 'runtime', 'releaseYear', 'queue',
       'info', 'maturity', 'userRating', 'bookmarkPosition', 'creditsOffset',
       'watched', 'delivery']],
     [['genres', 'tags', 'creators', 'directors', 'cast'],
@@ -82,6 +83,7 @@ VIDEO_LIST_RATING_THUMB_PATHS = [
 INFO_MAPPINGS = {
     'title': 'title',
     'year': 'releaseYear',
+    'dateadded': ['availability', 'availabilityStartTime'],
     'plot': 'synopsis',
     'season': ['summary', 'season'],
     'season_shortname': ['summary', 'shortName'],  # Add info to item listings._create_season_item
@@ -95,6 +97,7 @@ INFO_MAPPINGS = {
 }
 
 INFO_TRANSFORMATIONS = {
+    'dateadded': lambda t: t if (t == None) else datetime.utcfromtimestamp(t / 1000).strftime('%Y-%m-%d %H:%M:%S'), # convert milliseconds since the UNIX epoch to normal unix timestamp
     'season_shortname': lambda sn: ''.join([n for n in sn if n.isdigit()]),
     'rating': lambda r: r / 10,
     'playcount': lambda w: int(w)  # pylint: disable=unnecessary-lambda
