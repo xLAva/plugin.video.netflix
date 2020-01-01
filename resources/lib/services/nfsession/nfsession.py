@@ -156,7 +156,7 @@ class NetflixSession(NFSessionAccess):
         if context_name in ['genres', 'seasons']:
             response_size += 1
 
-        number_of_requests = 100 if no_limit_req else 2
+        number_of_requests = 100 if no_limit_req else 10
         perpetual_range_start = int(perpetual_range_start) if perpetual_range_start else 0
         range_start = perpetual_range_start
         range_end = range_start + request_size
