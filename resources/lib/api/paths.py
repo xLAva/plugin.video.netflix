@@ -49,7 +49,7 @@ VIDEO_LIST_PARTIAL_PATHS = [
 ] + ART_PARTIAL_PATHS
 
 VIDEO_LIST_BASIC_PARTIAL_PATHS = [
-    [['title', 'queue', 'watched', 'summary', 'type', 'id']]
+    [['availability', 'title', 'queue', 'watched', 'summary', 'type', 'id']]
 ]
 
 GENRE_PARTIAL_PATHS = [
