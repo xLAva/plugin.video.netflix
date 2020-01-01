@@ -59,6 +59,9 @@ CONTEXT_MENU_ACTIONS = {
     'trailer': {
         'label': common.get_local_string(30179),
         'url': ctx_item_url(['trailer'])},
+    'similars': {
+        'label': 'Similars',
+        'url': ctx_item_url(['similars'])},
     'force_update_mylist': {
         'label': common.get_local_string(30214),
         'url': ctx_item_url(['force_update_mylist'])}
@@ -87,15 +90,16 @@ def generate_context_menu_items(videoid):
     if videoid.mediatype in [common.VideoId.MOVIE, common.VideoId.SHOW]:
         items.insert(0, _ctx_item('rate_thumb', videoid))
 
-    if videoid.mediatype != common.VideoId.SUPPLEMENTAL and \
-            videoid.mediatype in [common.VideoId.MOVIE, common.VideoId.SHOW]:
-        items.insert(0, _ctx_item('trailer', videoid))
-
     if videoid.mediatype in [common.VideoId.MOVIE, common.VideoId.SHOW]:
         list_action = ('remove_from_list'
                        if videoid in api.mylist_items()
                        else 'add_to_list')
         items.insert(0, _ctx_item(list_action, videoid))
+
+    if videoid.mediatype != common.VideoId.SUPPLEMENTAL and \
+            videoid.mediatype in [common.VideoId.MOVIE, common.VideoId.SHOW]:
+        items.insert(0, _ctx_item('trailer', videoid))
+        items.insert(0, _ctx_item('similars', videoid))
 
     return items
 

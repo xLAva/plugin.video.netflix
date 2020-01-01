@@ -114,6 +114,18 @@ class AddonActionExecutor(object):
         else:
             ui.show_notification(common.get_local_string(30111))
 
+    @common.inject_video_id(path_offset=1)
+    @common.time_execution(immediate=False)
+    def similars(self, videoid):
+        """Get the similars list"""
+        video_list = api.supplemental_video_list(videoid, 'similars')
+        if video_list.videos:
+            url = common.build_url(['supplemental', videoid.value, videoid.mediatype, 'similars'],
+                                   mode=g.MODE_DIRECTORY)
+            xbmc.executebuiltin('Container.Update({})'.format(url))
+        else:
+            ui.show_notification(common.get_local_string(30111))
+
     @common.time_execution(immediate=False)
     def purge_cache(self, pathitems=None):  # pylint: disable=unused-argument
         """Clear the cache. If on_disk param is supplied, also clear cached
